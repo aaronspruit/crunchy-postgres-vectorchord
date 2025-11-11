@@ -9,12 +9,21 @@
   "repositories": ["budimanjojo/crunchy-postgres-vectorchord"],
   "automerge": false,
   "rebaseWhen": "conflicted",
+  "customDatasources": {
+    "crunchydata-postgres": {
+      "defaultRegistryUrlTemplate": "https://www.crunchydata.com/developers/download-postgres/containers/postgresql17",
+      "format": "plain",
+      "transformTemplates": [
+        "{ \"releases\": $map($map($.releases, function($v) { $match($v.version, /\\\"tag\\\":\\\"(ubi[0-9-.]+)\\\"/).groups[0] }), function($v) { { \"version\": $v } }) }"
+      ],
+    }
+  },
   "customManagers": [
     {
       "customType": "regex",
       "fileMatch": ["^versions.yaml$"],
       "matchStrings": [
-        "datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n.*?- \"?(?<currentValue>.*)\"?\\n"
+        "datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: registryUrl=(?<registryUrl>\\S+))?\\n.*?- \"?(?<currentValue>.*)\"?"
       ]
     }
   ],
