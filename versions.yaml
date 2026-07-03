@@ -1,9 +1,9 @@
 ---
 cdpg:
   # renovate: datasource=custom.crunchydata-postgres depName=registry.developers.crunchydata.com/crunchydata/crunchy-postgres registryUrl=https://www.crunchydata.com/developers/download-postgres/containers/postgresql18
-  - ubi9-18.3-2610
+  - ubi9-18.4-2621
   # renovate: datasource=custom.crunchydata-postgres depName=registry.developers.crunchydata.com/crunchydata/crunchy-postgres registryUrl=https://www.crunchydata.com/developers/download-postgres/containers/postgresql17
-  - ubi9-17.9-2610
+  - ubi9-17.10-2621
 vectorchord:
   # renovate: datasource=github-releases depName=tensorchord/VectorChord
   - 1.1.1
