@@ -1,10 +1,46 @@
 # crunchy-postgres-vectorchord
 
-Container images for [Crunchy Postgres for Kubernetes](https://access.crunchydata.com/documentation/postgres-operator) with [VectorChord](https://github.com/tensorchord/VectorChord) extension installed.
+Container images for [Crunchy Postgres for Kubernetes](https://access.crunchydata.com/documentation/postgres-operator) with the [VectorChord](https://github.com/supervc-stack/VectorChord) extension installed.
+
+Two images are published for each release:
+
+| Image | Purpose |
+|---|---|
+| `ghcr.io/aaronspruit/crunchy-postgres-vectorchord` | The database. Use it as `spec.image`. |
+| `ghcr.io/aaronspruit/crunchy-postgres-vectorchord-upgrade` | The pg_upgrade helper. Use it as the image of a `PGUpgrade`. |
+
+Both cover `linux/amd64` and `linux/arm64`.
+
+## Tags
+
+```sh
+docker pull ghcr.io/aaronspruit/crunchy-postgres-vectorchord:18-1.1.1
+```
+
+| Tag | Example |
+|---|---|
+| `<cdpg>-<vchord>` | `ubi9-18.4-2621-1.1.1` |
+| `<pg_major>-<vchord>` | `18-1.1.1` |
+| `<cdpg>` | `ubi9-18.4-2621` |
+| `<pg_major>` | `18` |
+| `latest` | the newest Postgres major |
+
+`<cdpg>` is the Crunchy image tag and `<vchord>` is the VectorChord version. Every tag moves to the newest matching build. Pin a digest for a reference that never moves.
+
+Postgres 15, 16, 17 and 18 are built. That is the set of majors Crunchy supports. **Postgres 14 is not available**, because Crunchy publishes no image for it.
+
+> [!CAUTION]
+> Do not follow `latest` for a database. It moves across Postgres majors, and a
+> major version change needs a pg_upgrade. Pin `<pg_major>-<vchord>`, or pin a
+> digest.
+
+[versions.yaml](versions.yaml) lists the combinations that are built. Crunchy publishes the pg_upgrade image for the newest Postgres major alone, so the upgrade image exists for that major only.
+
+## Use
 
 > [!IMPORTANT]
-> The postgres configuration needs to be altered to enable the extension.
-> You can do this by setting shared_preload_libraries in your PostgresCluster spec:
+> The Postgres configuration must load the extension. Set
+> `shared_preload_libraries` in the PostgresCluster spec:
 >
 > ```yaml
 > apiVersion: postgres-operator.crunchydata.com/v1beta1
@@ -16,7 +52,7 @@ Container images for [Crunchy Postgres for Kubernetes](https://access.crunchydat
 >       shared_preload_libraries: "vchord.so"
 > ```
 >
-> Or if you're still using the operator version older than `5.8.0`:
+> On an operator older than `5.8.0`, set it here instead:
 >
 > ```yaml
 > apiVersion: postgres-operator.crunchydata.com/v1beta1
@@ -31,9 +67,8 @@ Container images for [Crunchy Postgres for Kubernetes](https://access.crunchydat
 > ```
 
 > [!IMPORTANT]
-> The "VectorChord" extension is not enabled by default.
-> You need to enable it and set the search path when initializing the database.
-> You can configure it in your PostgresCluster spec:
+> The VectorChord extension is not enabled by default. Enable it when the
+> database is initialized:
 >
 > ```yaml
 > apiVersion: v1
@@ -42,7 +77,7 @@ Container images for [Crunchy Postgres for Kubernetes](https://access.crunchydat
 >   name: enable-vchord
 > data:
 >   init.sql: |-
->     /c mydatabasename\\
+>     \c mydatabasename
 >     CREATE EXTENSION IF NOT EXISTS vchord CASCADE;
 > ---
 > apiVersion: postgres-operator.crunchydata.com/v1beta1
@@ -56,13 +91,25 @@ Container images for [Crunchy Postgres for Kubernetes](https://access.crunchydat
 
 ## Building
 
-To build the Dockerfile locally, you need to pass the `CNPG_TAG` and `VECTORCHORD_TAG` args.
-For example:
+Pass `CDPG_TAG` and `VECTORCHORD_TAG` to build the database image:
 
 ```sh
-docker build . --build-arg="CDPG_TAG=ubi9-17.5-2520" --build-arg="VECTORCHORD_TAG=0.4.2"
+docker build . \
+  --build-arg CDPG_TAG=ubi9-18.4-2621 \
+  --build-arg VECTORCHORD_TAG=1.1.1
 ```
+
+Add `CDPG_IMAGE` to build the pg_upgrade image:
+
+```sh
+docker build . \
+  --build-arg CDPG_IMAGE=crunchy-upgrade \
+  --build-arg CDPG_TAG=ubi9-18.4-2621 \
+  --build-arg VECTORCHORD_TAG=1.1.1
+```
+
+The Crunchy registry needs no account. It issues a token to an anonymous caller.
 
 ## Thanks
 
-I shamelessly took a lot of code from [cloudnative-vectorchord](https://github.com/tensorchord/cloudnative-vectorchord).
+I shamelessly took a lot of code from [cloudnative-vectorchord](https://github.com/tensorchord/cloudnative-vectorchord) and from [budimanjojo/crunchy-postgres-vectorchord](https://github.com/budimanjojo/crunchy-postgres-vectorchord).

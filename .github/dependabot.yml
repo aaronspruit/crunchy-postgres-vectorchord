@@ -1,0 +1,22 @@
+version: 2
+
+# Dependabot covers GitHub Actions only. It has no ecosystem for GitHub
+# releases, so it cannot follow VectorChord, and it reads no file that it does
+# not recognise, so it cannot follow versions.yaml. The Dockerfile takes its
+# base image from a build argument, which leaves no `FROM` line to parse
+# either. .github/workflows/version-check.yml covers those two dependencies.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    assignees:
+      - aaronspruit
+    groups:
+      # One pull request for every routine action bump. They are reviewed
+      # together, and a separate branch and build for each is not worth it.
+      actions:
+        patterns:
+          - "*"
