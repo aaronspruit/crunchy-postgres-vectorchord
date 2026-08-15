@@ -311,17 +311,24 @@ jobs:
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
+      # `tags` holds one tag for each line. It reaches the script through the
+      # environment, because a multi-line value pasted into the script itself
+      # splits the statement that holds it across lines.
       - name: Report the tags
         if: github.event_name != 'pull_request'
+        env:
+          CELL: ${{ steps.image.outputs.cell }}
+          REFERENCE: ${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}
+          TAGS: ${{ steps.metadata.outputs.tags }}
         run: |
           {
-            echo "### ${{ steps.image.outputs.cell }}"
+            echo "### $CELL"
             echo
             echo '```'
-            echo "${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}"
+            echo "$REFERENCE"
             echo '```'
             echo
-            for tag in ${{ steps.metadata.outputs.tags }}; do echo "- \`$tag\`"; done
+            echo "$TAGS" | sed 's/^/- `/; s/$/`/'
           } >> "$GITHUB_STEP_SUMMARY"
 
   release:
