@@ -343,10 +343,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # The list holds every tag that the build pushed, in the order of the
+      # matrix. The rules match the metadata step of the build job: each cell
+      # claims the two tags that name an extension version, the newest
+      # extension version also claims the two bare tags, and one cell claims
+      # `latest`. A blank line divides each Postgres major, and the database
+      # image of a major from its pg_upgrade image, so `latest` stays inside
+      # the group that carries it.
       - name: Write the release notes
         env:
           NOTES: ${{ needs.configure.outputs.notes }}
           MATRIX: ${{ needs.configure.outputs.matrix }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
           {
@@ -357,8 +365,25 @@ jobs:
             echo "## Images"
             echo
             echo '```'
-            echo "$MATRIX" | jq -r '.include[]
-              | "ghcr.io/${{ github.repository }}\(.image_suffix):\(.pg_major)-\(.vectorchord)"'
+            echo "$MATRIX" | jq -r --arg repo "$REPOSITORY" '
+              def tags:
+                "ghcr.io/\($repo)\(.image_suffix)" as $name
+                | [
+                    "\($name):\(.cdpg)-\(.vectorchord)",
+                    "\($name):\(.pg_major)-\(.vectorchord)"
+                  ]
+                  + (if .is_newest_vectorchord
+                     then ["\($name):\(.cdpg)", "\($name):\(.pg_major)"]
+                     else [] end)
+                  + (if .is_latest then ["\($name):latest"] else [] end);
+              def group: "\(.pg_major)/\(.variant)";
+              .include as $cells
+              | ($cells | map(group) | reduce .[] as $group ([];
+                  if any(.[]; . == $group) then . else . + [$group] end))
+              | map(. as $group
+                    | [$cells[] | select(group == $group) | tags]
+                    | flatten | join("\n"))
+              | join("\n\n")'
             echo '```'
           } > release-notes.md
           cat release-notes.md
