@@ -1,3 +1,12 @@
+# check=skip=InvalidDefaultArgInFrom
+# The directive above must stay on the first line, where the parser reads it.
+#
+# CDPG_TAG has no default on purpose. A default would let a build that forgot
+# the argument produce an image of some other Postgres version and still pass.
+# Without one the builder warns that the FROM line cannot resolve, which is the
+# intended state, so that one check is off. A build that omits the argument
+# still fails, with `invalid reference format`.
+
 # This image adds the VectorChord extension to a Crunchy Data Postgres image.
 #
 # CDPG_IMAGE selects the base image. `crunchy-postgres` is the database.
