@@ -77,7 +77,18 @@ jobs:
           git switch -c "$BRANCH"
           git add versions.yaml
           git commit -m "deps: update the Crunchy and VectorChord versions" -m "$SUMMARY"
-          git push --force origin "$BRANCH"
+
+          # git and gh both answer a token that lacks a permission with a bare
+          # 403, which reads as a repository fault rather than a token fault.
+          # Name the cause instead, because this step is the only one that
+          # writes and a token is the only thing that stops it.
+          token_help() {
+            echo "::error::$1 The VERSIONS_PR_TOKEN secret needs 'Contents: read and write' and 'Pull requests: read and write' on this repository. A fine-grained token also needs this repository in its 'Repository access' list. A classic token needs the 'repo' scope. Check that the token has not expired."
+            exit 1
+          }
+
+          git push --force origin "$BRANCH" \
+            || token_help "Could not push $BRANCH."
 
           body=$(printf '%s\n\n```\n%s\n```\n\n%s\n' \
             'The newest published versions of the two image dependencies.' \
@@ -86,7 +97,8 @@ jobs:
 
           if gh pr view "$BRANCH" --repo "$GITHUB_REPOSITORY" --json state \
                --jq .state 2>/dev/null | grep -qx OPEN; then
-            gh pr edit "$BRANCH" --repo "$GITHUB_REPOSITORY" --body "$body"
+            gh pr edit "$BRANCH" --repo "$GITHUB_REPOSITORY" --body "$body" \
+              || token_help "Could not update the pull request for $BRANCH."
             echo "The open pull request is updated."
           else
             gh pr create --repo "$GITHUB_REPOSITORY" \
@@ -95,5 +107,6 @@ jobs:
               --title "deps: update the Crunchy and VectorChord versions" \
               --body "$body" \
               --label dependencies \
-              --assignee aaronspruit
+              --assignee aaronspruit \
+              || token_help "Could not open a pull request for $BRANCH."
           fi

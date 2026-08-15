@@ -27,7 +27,7 @@ docker pull ghcr.io/aaronspruit/crunchy-postgres-vectorchord:18-1.1.1
 
 `<cdpg>` is the Crunchy image tag and `<vchord>` is the VectorChord version. Every tag moves to the newest matching build. Pin a digest for a reference that never moves.
 
-Postgres 15, 16, 17 and 18 are built. That is the set of majors Crunchy supports. **Postgres 14 is not available**, because Crunchy publishes no image for it.
+Postgres 15, 16, 17 and 18 are built. That is the set of majors Crunchy supports.
 
 > [!CAUTION]
 > Do not follow `latest` for a database. It moves across Postgres majors, and a
