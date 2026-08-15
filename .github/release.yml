@@ -1,0 +1,29 @@
+# Groups the "What's Changed" list that `generate_release_notes` adds under the
+# body that ci.yml writes. See the `release` job.
+#
+# The `postgres`, `vectorchord` and `build` labels are applied by the `label`
+# job in ci.yml, from the same diff that writes the release notes. Dependabot
+# applies `dependencies` to its own pull requests. Nothing enforces a label,
+# because an unlabelled change lands in "Other Changes" and reads correctly
+# there.
+changelog:
+  categories:
+    - title: 🐘 Postgres
+      labels:
+        - postgres
+
+    - title: 🔍 VectorChord
+      labels:
+        - vectorchord
+
+    - title: 🏗️ Build
+      labels:
+        - build
+
+    - title: 📦 Dependencies
+      labels:
+        - dependencies
+
+    - title: 🧹 Other Changes
+      labels:
+        - '*'

@@ -1,9 +1,21 @@
 ---
+# The build matrix. Every `cdpg` tag is paired with every `vectorchord`
+# version, so this file alone decides which images exist.
+#
+# The policy is every Postgres major that Crunchy supports, each at its newest
+# patch, and the newest VectorChord release. Crunchy supports four majors, so
+# a new major arrives and the oldest leaves on their schedule, not on one set
+# here. Crunchy publishes no image older than those four, which is why there is
+# no Postgres 14 entry.
+#
+# .github/workflows/version-check.yml maintains both lists and opens a pull
+# request when either source publishes something newer.
+#
+# cdpg tags come from https://www.crunchydata.com/developers/download-postgres/containers.
 cdpg:
-  # renovate: datasource=custom.crunchydata-postgres depName=registry.developers.crunchydata.com/crunchydata/crunchy-postgres registryUrl=https://www.crunchydata.com/developers/download-postgres/containers/postgresql18
   - ubi9-18.4-2621
-  # renovate: datasource=custom.crunchydata-postgres depName=registry.developers.crunchydata.com/crunchydata/crunchy-postgres registryUrl=https://www.crunchydata.com/developers/download-postgres/containers/postgresql17
   - ubi9-17.10-2621
+
+# vectorchord releases come from https://github.com/supervc-stack/VectorChord.
 vectorchord:
-  # renovate: datasource=github-releases depName=tensorchord/VectorChord
   - 1.1.1

@@ -1,0 +1,99 @@
+---
+# Opens a pull request when Crunchy or VectorChord publishes a newer version.
+#
+# Dependabot covers GitHub Actions and nothing else here, because it has no
+# ecosystem for GitHub releases and reads no file that it does not recognise.
+# This workflow covers the two dependencies that versions.yaml holds.
+#
+# NOTE: a pull request that GITHUB_TOKEN opens starts no other workflow, which
+# is a GitHub rule against recursion. CI/CD therefore does not build the
+# proposal unless a `VERSIONS_PR_TOKEN` secret exists. That secret is a
+# fine-grained personal access token on this repository, with write access to
+# contents and to pull requests. Without it, close the pull request and reopen
+# it to start CI/CD by hand.
+name: Version check
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # Daily. Both sources publish a few times a year.
+    - cron: '17 6 * * *'
+
+permissions: {}
+
+concurrency:
+  group: version-check
+  cancel-in-progress: false
+
+env:
+  BRANCH: automated/update-versions
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          token: ${{ secrets.VERSIONS_PR_TOKEN || github.token }}
+
+      - name: Look for newer versions
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # The token raises the rate limit of the GitHub API. The releases
+          # endpoint is public, so an empty value still works.
+          changes=$(python3 .github/scripts/check_versions.py versions.yaml "$GH_TOKEN")
+          if [ -z "$changes" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Every version is current."
+            exit 0
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          {
+            echo 'summary<<CHANGES'
+            echo "$changes"
+            echo 'CHANGES'
+          } >> "$GITHUB_OUTPUT"
+          echo "$changes"
+
+      - name: Open or update the pull request
+        if: steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.VERSIONS_PR_TOKEN || github.token }}
+          SUMMARY: ${{ steps.check.outputs.summary }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # One long-lived branch, force-pushed. A second run that finds a newer
+          # version replaces the proposal instead of opening a rival one.
+          git switch -c "$BRANCH"
+          git add versions.yaml
+          git commit -m "deps: update the Crunchy and VectorChord versions" -m "$SUMMARY"
+          git push --force origin "$BRANCH"
+
+          body=$(printf '%s\n\n```\n%s\n```\n\n%s\n' \
+            'The newest published versions of the two image dependencies.' \
+            "$SUMMARY" \
+            'Opened by .github/workflows/version-check.yml.')
+
+          if gh pr view "$BRANCH" --repo "$GITHUB_REPOSITORY" --json state \
+               --jq .state 2>/dev/null | grep -qx OPEN; then
+            gh pr edit "$BRANCH" --repo "$GITHUB_REPOSITORY" --body "$body"
+            echo "The open pull request is updated."
+          else
+            gh pr create --repo "$GITHUB_REPOSITORY" \
+              --base "${GITHUB_REF_NAME}" \
+              --head "$BRANCH" \
+              --title "deps: update the Crunchy and VectorChord versions" \
+              --body "$body" \
+              --label dependencies \
+              --assignee aaronspruit
+          fi
