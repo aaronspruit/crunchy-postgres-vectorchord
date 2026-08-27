@@ -13,10 +13,10 @@
 #
 # cdpg tags come from https://www.crunchydata.com/developers/download-postgres/containers.
 cdpg:
-  - ubi9-18.4-2621
-  - ubi9-17.10-2621
-  - ubi9-16.14-2621
-  - ubi9-15.18-2621
+  - ubi9-18.6-2633
+  - ubi9-17.11-2633
+  - ubi9-16.15-2633
+  - ubi9-15.19-2633
 
 # vectorchord releases come from https://github.com/supervc-stack/VectorChord.
 vectorchord:
