@@ -296,12 +296,17 @@ jobs:
       # upload of its results. Code scanning that is switched off, or a SARIF
       # file that the API rejects, is a reason to lose the report and nothing
       # more.
+      #
+      # An alert closes only when a new scan in its category no longer finds it.
+      # The category therefore names no Crunchy tag, and it names a VectorChord
+      # version only for a cell that is not the newest. A version bump then
+      # replaces the earlier results.
       - name: Upload the scan results
         uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         continue-on-error: true
         with:
           sarif_file: trivy-results.sarif
-          category: trivy-${{ steps.image.outputs.cell }}
+          category: trivy-${{ matrix.variant }}-${{ matrix.pg_major }}-${{ matrix.is_newest_vectorchord && 'newest' || matrix.vectorchord }}
 
       - name: Generate the attestation
         if: github.event_name != 'pull_request'

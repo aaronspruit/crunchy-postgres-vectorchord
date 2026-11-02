@@ -4,6 +4,10 @@
 Reads the JSON form of versions.yaml on stdin and writes a GitHub Actions
 matrix on stdout. Every Crunchy tag is paired with every VectorChord version.
 
+versions.yaml must list one Crunchy tag for each Postgres major. Two tags for
+one major would race for the `<pg_major>` image tags, and each scan would
+replace the other in code scanning, so the script refuses them.
+
 Three checks shape the result.
 
 A pair is included only when VectorChord published a build for that Postgres
@@ -110,7 +114,12 @@ def main() -> None:
     if not cdpg_tags or not vectorchord_versions:
         raise SystemExit("versions.yaml must list a cdpg tag and a vectorchord version")
 
-    newest_major = max((postgres_major(tag) for tag in cdpg_tags), key=int)
+    majors = [postgres_major(tag) for tag in cdpg_tags]
+    repeated = sorted({major for major in majors if majors.count(major) > 1}, key=int)
+    if repeated:
+        raise SystemExit(f"versions.yaml lists more than one cdpg tag for Postgres {', '.join(repeated)}")
+
+    newest_major = max(majors, key=int)
     newest_vectorchord = max(vectorchord_versions, key=version_order)
 
     token = anonymous_token(UPGRADE_REPO)
