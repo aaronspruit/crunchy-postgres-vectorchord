@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-Guidance for Claude Code (claude.ai/code) when it works in this repository.
+Guidance for a coding agent when it works in this repository.
 
 ## Mandatory rules
 
@@ -133,11 +133,12 @@ A pull request that `GITHUB_TOKEN` opens starts no other workflow. Version-check
 
 ## CI/CD
 
-[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on pull requests and on pushes to `main`. It holds four jobs.
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on pull requests and on pushes to `main`. It holds five jobs.
 
 - `configure` builds the matrix. On a merge it also plans the release: whether to cut one, the version, and the notes.
 - `label` runs on a pull request only. It labels the pull request `postgres`, `vectorchord` or `build`, from the same diff that writes the release notes, so a label and a section can never disagree.
 - `build` runs one job for each image. A pull request builds every image, scans it and pushes nothing. A merge that earns a release pushes.
+- `prune-scans` runs after a release build on `main`. It deletes each scan category that the matrix no longer makes, because an alert closes only when a new upload in its category stops finding it.
 - `release` creates the tag and publishes the release.
 
 **A pull request verifies the build.** It builds both architectures, then loads the amd64 image from the same cache to smoke test and scan it. Nothing is pushed.
