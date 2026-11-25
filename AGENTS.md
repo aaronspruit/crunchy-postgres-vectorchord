@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-Guidance for Claude Code (claude.ai/code) when it works in this repository.
+Guidance for a coding agent when it works in this repository.
 
 ## Mandatory rules
 
