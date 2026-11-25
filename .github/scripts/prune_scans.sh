@@ -29,7 +29,11 @@ list() {
     --jq '.[] | [.category, .id, .deletable] | @tsv'
 }
 
-stale=$(list | cut -f1 | grep '^trivy-' | sort -u | comm -23 - <(echo "$expected") || true)
+# Each `list` result goes into a variable before any filter runs. A failed API
+# call then ends the script through `set -e`, and `|| true` covers only a grep
+# that matched nothing.
+analyses=$(list)
+stale=$(echo "$analyses" | cut -f1 | grep '^trivy-' | sort -u | comm -23 - <(echo "$expected") || true)
 if [ -z "$stale" ]; then
   echo "No stale category on $REF."
   exit 0
@@ -43,9 +47,9 @@ fi
 # more than one set. Each pass deletes what is deletable and lists again, until
 # no analysis of a stale category is left.
 while :; do
-  ids=$(list | awk -F'\t' -v stale="$stale" '
-    BEGIN { n = split(stale, s, "\n"); for (i = 1; i <= n; i++) want[s[i]] = 1 }
-    ($1 in want) && $3 == "true" { print $2 }')
+  analyses=$(list)
+  ids=$(echo "$analyses" | awk -F'\t' 'NR == FNR { want[$0] = 1; next }
+    ($1 in want) && $3 == "true" { print $2 }' <(echo "$stale") -)
   [ -n "$ids" ] || break
   for id in $ids; do
     gh api --silent --method DELETE \
@@ -54,7 +58,8 @@ while :; do
   done
 done
 
-left=$(list | cut -f1 | grep -Fx -f <(echo "$stale") || true)
+analyses=$(list)
+left=$(echo "$analyses" | cut -f1 | grep -Fx -f <(echo "$stale") || true)
 if [ -n "$left" ]; then
   echo "::warning::Analyses that cannot be deleted are left in:"$'\n'"$left"
 fi
